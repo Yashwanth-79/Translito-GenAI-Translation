@@ -1,0 +1,9 @@
+streamlit
+gtts
+sounddevice
+soundfile
+deep_translator
+cryptography
+groq
+audio_recorder_streamlit
+dotenv
