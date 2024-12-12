@@ -155,7 +155,7 @@ def main():
     
     st.markdown("""<style> .stAudio { width: 100%; } </style>""", unsafe_allow_html=True)
     st.markdown(" ## Healthcare Translation Web App with Generative AI")
-    st.text("By [Nao Medical](https://naomedical.com) - Yashwanth M S")
+    st.text("By Yashwanth M S")
 
     languages = {
     'English': 'en', 'Spanish': 'es', 'French': 'fr',
