@@ -3,7 +3,7 @@ import os
 from groq import Groq
 import tempfile
 from gtts import gTTS
-import audio_recorder_streamlit as ast
+import audio_recorder_streamlit as ast  # Use streamlit_audio_recorder
 from deep_translator import GoogleTranslator
 import time
 import numpy as np
@@ -151,138 +151,69 @@ def secure_text_to_speech(encrypted_text, lang_code):
         return None
 
 def main():
-    st.set_page_config(
-        page_title="NaoMedical Translation Assistant",
-        layout="wide",
-        initial_sidebar_state="expanded"
+    st.set_page_config(page_title="NaoMedical", layout="wide")
+    
+    # Add custom CSS styles
+    st.markdown(
+        """
+        <style>
+            /* Main title style */
+            .main-title {
+                font-size: 2.5em;
+                font-weight: bold;
+                text-align: center;
+                color: #2C3E50;
+            }
+            /* Subtitle style */
+            .sub-title {
+                font-size: 1.2em;
+                text-align: center;
+                color: #34495E;
+            }
+            /* Recording status style */
+            .recording-status {
+                background-color: #e74c3c;
+                color: white;
+                padding: 10px;
+                text-align: center;
+                border-radius: 5px;
+                margin-bottom: 10px;
+            }
+            /* Sidebar instructions */
+            .sidebar-instructions {
+                font-size: 1em;
+                line-height: 1.5;
+            }
+            /* Audio section styling */
+            .audio-section {
+                margin-top: 20px;
+            }
+            /* Button styles override */
+            .stButton>button {
+                font-weight: bold;
+            }
+        </style>
+        """, unsafe_allow_html=True
     )
     
-    # Custom CSS for enhanced UI
-    st.markdown("""
-        <style>
-        /* Overall app styling */
-        .main {
-            padding: 1rem;
-        }
-        
-        .stApp {
-            background-color: #f8f9fa;
-        }
-        
-        /* Header styling */
-        .custom-header {
-            background: linear-gradient(135deg, #00467F 0%, #A5CC82 100%);
-            padding: 2rem;
-            border-radius: 10px;
-            color: white;
-            text-align: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Section styling */
-        .section-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            margin-bottom: 1.5rem;
-        }
-        
-        /* Button styling */
-        .stButton > button {
-            border-radius: 20px;
-            padding: 0.5rem 1rem;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-        
-        .stButton > button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Recording status */
-        .recording-status {
-            background: linear-gradient(45deg, #ff4b4b, #ff6b6b);
-            color: white;
-            padding: 1rem;
-            border-radius: 10px;
-            text-align: center;
-            margin: 1rem 0;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.7; }
-            100% { opacity: 1; }
-        }
-        
-        /* Audio player styling */
-        .stAudio {
-            width: 100%;
-            margin: 1rem 0;
-        }
-        
-        /* Language selector styling */
-        .stSelectbox {
-            margin-bottom: 1rem;
-        }
-        
-        /* Text display areas */
-        .text-output {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
-            margin: 0.5rem 0;
-        }
-        
-        /* Helper text */
-        .helper-text {
-            color: #6c757d;
-            font-size: 0.9rem;
-            font-style: italic;
-            margin-bottom: 1rem;
-        }
-        
-        /* Progress spinner */
-        .stSpinner {
-            text-align: center;
-            margin: 1rem 0;
-        }
-        </style>
-    """, unsafe_allow_html=True)
+    # Sidebar with instructions and guidance
+    st.sidebar.markdown("## How to Use NaoMedical")
+    st.sidebar.markdown(
+        """
+        1. **Select Languages:** Choose the source language (your spoken language) and the target language (desired translation).
+        2. **Record Your Voice:** Click on **Start Recording** and speak clearly. When done, click **Stop**.
+        3. **Review & Play:** Once processed, view the transcription and translation. Use the play buttons to listen to both the original and the translated audio.
+        4. **Reset if Needed:** If you want to start over, click the **Reset** button.
+        """
+    )
+    st.sidebar.info("This application securely processes audio, transcribes medical content, and translates it while enhancing medical terminologies. Enjoy a seamless and secure experience!")
 
-    # Header
-    st.markdown("""
-        <div class="custom-header">
-            <h1>Healthcare Translation Assistant</h1>
-            <p>Powered by Advanced AI for Accurate Medical Translations</p>
-        </div>
-    """, unsafe_allow_html=True)
+    # Main page header
+    st.markdown('<div class="main-title">NaoMedical</div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Healthcare Translation Web App with Generative AI</div>', unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>By Yashwanth M S</p>", unsafe_allow_html=True)
 
-    # Quick Guide
-    with st.expander("📖 How to Use This Tool", expanded=True):
-        st.markdown("""
-            ### Quick Start Guide
-            1. **Choose Languages**: Select your source and target languages
-            2. **Record Speech**: Use the recording controls to capture speech
-            3. **Review & Listen**: Check both the original and translated text
-            4. **Playback Options**: Listen to both versions in their respective languages
-            
-            **Tips for Best Results:**
-            - Speak clearly and at a normal pace
-            - Minimize background noise
-            - Use proper medical terminology when possible
-            - Wait for the translation to complete before recording again
-        """)
-
-    # Language Selection Section
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.subheader("🌐 Language Settings")
-    
+    # Define language options
     languages = {
         'English': 'en', 'Spanish': 'es', 'French': 'fr',
         'German': 'de', 'Italian': 'it', 'Portuguese': 'pt',
@@ -300,94 +231,79 @@ def main():
         'Bulgarian': 'bg', 'Serbian': 'sr', 'Croatian': 'hr',
         'Slovak': 'sk', 'Slovenian': 'sl', 'Lithuanian': 'lt',
         'Latvian': 'lv', 'Estonian': 'et', 'Icelandic': 'is',
-        'Afrikaans': 'af', 'Albanian': 'sq', 'Amharic': 'am',
-        'Armenian': 'hy', 'Azerbaijani': 'az', 'Basque': 'eu',
+        'Afrikaans': 'af', 'Albanian': 'sq', 'Amharic': 'am', 
+        'Armenian': 'hy', 'Azerbaijani': 'az', 'Basque': 'eu', 
         'Belarusian': 'be', 'Bosnian': 'bs', 'Catalan': 'ca',
         'Cebuano': 'ceb', 'Corsican': 'co', 'Esperanto': 'eo',
         'Frisian': 'fy', 'Galician': 'gl', 'Georgian': 'ka',
-        'Haitian Creole': 'ht', 'Hausa': 'ha', 'Hawaiian': 'haw',
-        'Hmong': 'hmn', 'Igbo': 'ig', 'Irish': 'ga',
-        'Javanese': 'jw', 'Kannada': 'kn', 'Kazakh': 'kk',
-        'Khmer': 'km', 'Kinyarwanda': 'rw', 'Kurdish': 'ku',
-        'Kyrgyz': 'ky', 'Lao': 'lo', 'Latin': 'la',
-        'Luxembourgish': 'lb', 'Macedonian': 'mk', 'Malagasy': 'mg',
-        'Malayalam': 'ml', 'Maltese': 'mt', 'Maori': 'mi',
-        'Mongolian': 'mn', 'Myanmar (Burmese)': 'my', 'Nepali': 'ne',
-        'Nyanja (Chichewa)': 'ny', 'Odia (Oriya)': 'or', 'Pashto': 'ps',
-        'Persian': 'fa', 'Samoan': 'sm', 'Scots Gaelic': 'gd',
-        'Sesotho': 'st', 'Shona': 'sn', 'Sindhi': 'sd',
-        'Sinhala (Sinhalese)': 'si', 'Somali': 'so', 'Sundanese': 'su',
-        'Swahili': 'sw', 'Tagalog (Filipino)': 'tl', 'Tajik': 'tg',
-        'Tatar': 'tt', 'Turkmen': 'tk', 'Uyghur': 'ug',
-        'Uzbek': 'uz', 'Welsh': 'cy', 'Xhosa': 'xh',
-        'Yiddish': 'yi', 'Yoruba': 'yo', 'Zulu': 'zu'
+        'Haitian Creole': 'ht', 'Hausa': 'ha', 'Hawaiian': 'haw', 
+        'Hmong': 'hmn', 'Icelandic': 'is', 'Igbo': 'ig',
+        'Irish': 'ga', 'Javanese': 'jw', 'Kannada': 'kn',
+        'Kazakh': 'kk', 'Khmer': 'km', 'Kinyarwanda': 'rw',
+        'Kurdish': 'ku', 'Kyrgyz': 'ky', 'Lao': 'lo',
+        'Latin': 'la', 'Luxembourgish': 'lb', 'Macedonian': 'mk',
+        'Malagasy': 'mg', 'Malayalam': 'ml', 'Maltese': 'mt',
+        'Maori': 'mi', 'Mongolian': 'mn', 'Myanmar (Burmese)': 'my',
+        'Nepali': 'ne', 'Nyanja (Chichewa)': 'ny', 'Odia (Oriya)': 'or',
+        'Pashto': 'ps', 'Persian': 'fa', 'Samoan': 'sm',
+        'Scots Gaelic': 'gd', 'Sesotho': 'st', 'Shona': 'sn',
+        'Sindhi': 'sd', 'Sinhala (Sinhalese)': 'si', 'Somali': 'so',
+        'Sundanese': 'su', 'Swahili': 'sw', 'Tagalog (Filipino)': 'tl',
+        'Tajik': 'tg', 'Tatar': 'tt', 'Turkmen': 'tk',
+        'Uyghur': 'ug', 'Uzbek': 'uz', 'Welsh': 'cy',
+        'Xhosa': 'xh', 'Yiddish': 'yi', 'Yoruba': 'yo', 'Zulu': 'zu'
     }
     
+    # Language selection using two columns
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown('<p class="helper-text">Select the language you\'ll speak in</p>', unsafe_allow_html=True)
-        source_lang = st.selectbox("From (Source Language)", list(languages.keys()), index=0)
+        source_lang = st.selectbox("Source Language", list(languages.keys()), index=0)
     with col2:
-        st.markdown('<p class="helper-text">Select the language to translate to</p>', unsafe_allow_html=True)
-        target_lang = st.selectbox("To (Target Language)", list(languages.keys()), index=1)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # Recording Section
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-    st.subheader("🎙️ Voice Recording")
-    st.markdown('<p class="helper-text">Record your voice for translation</p>', unsafe_allow_html=True)
+        target_lang = st.selectbox("Target Language", list(languages.keys()), index=1)
     
+    st.markdown("<hr>", unsafe_allow_html=True)
+    st.subheader("Voice Recording")
+    
+    # Recording controls
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        if st.button("🎙️ Start Recording",
-                    type="primary" if st.session_state.recording_state != 'recording' else "secondary",
-                    disabled=st.session_state.recording_state == 'recording',
-                    help="Click to start recording your voice"):
+        if st.button("🎙️ Start Recording", 
+                     type="primary" if st.session_state.recording_state != 'recording' else "secondary",
+                     disabled=st.session_state.recording_state == 'recording'):
             st.session_state.recording_state = 'recording'
             st.session_state.audio_bytes = None
             st.rerun()
     
     with col2:
-        if st.button("⏹️ Stop Recording",
-                    type="primary" if st.session_state.recording_state == 'recording' else "secondary",
-                    disabled=st.session_state.recording_state != 'recording',
-                    help="Click to stop recording"):
+        if st.button("⏹️ Stop", 
+                     type="primary" if st.session_state.recording_state == 'recording' else "secondary",
+                     disabled=st.session_state.recording_state != 'recording'):
             st.session_state.recording_state = 'stopped'
             st.rerun()
     
     with col3:
         if st.button("🔄 Reset",
-                    disabled=st.session_state.recording_state == 'recording',
-                    help="Clear the current recording and start over"):
+                     disabled=st.session_state.recording_state == 'recording'):
             st.session_state.recording_state = 'stopped'
             st.session_state.audio_bytes = None
             st.rerun()
-
-    # Recording Status and Audio Capture
+    
     if st.session_state.recording_state == 'recording':
-        st.markdown("""
-            <div class="recording-status">
-                🎙️ Recording in progress... Speak clearly into your microphone
-                <br><small>Click 'Stop Recording' when finished</small>
-            </div>
-        """, unsafe_allow_html=True)
+        st.markdown('<div class="recording-status">Recording in progress... 🎙️</div>', unsafe_allow_html=True)
         
+        # Audio recorder widget
         audio_bytes = ast.audio_recorder(pause_threshold=60.0, sample_rate=44100)
         
         if audio_bytes:
             st.session_state.audio_bytes = audio_bytes
     
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # Audio Playback and Translation Results
     if st.session_state.audio_bytes:
-        st.markdown('<div class="section-card">', unsafe_allow_html=True)
-        st.subheader("📝 Recording Playback")
+        st.markdown('<div class="audio-section">', unsafe_allow_html=True)
         st.audio(st.session_state.audio_bytes, format="audio/wav")
         st.markdown('</div>', unsafe_allow_html=True)
         
-        with st.spinner("🔄 Processing your recording... This may take a moment"):
+        with st.spinner("Processing audio..."):
             audio_file = secure_save_audio(st.session_state.audio_bytes)
             
             if audio_file:
@@ -395,49 +311,30 @@ def main():
                 
                 if transcription:
                     enhanced_text = secure_enhance_medical_terms(transcription)
-                    translation = secure_translate_text(enhanced_text, languages[target_lang])
                     
-                    st.markdown('<div class="section-card">', unsafe_allow_html=True)
-                    st.subheader("🔄 Translation Results")
+                    translation = secure_translate_text(enhanced_text, languages[target_lang])
                     
                     col1, col2 = st.columns(2)
                     with col1:
-                        st.markdown("### Original Text")
-                        st.markdown('<div class="text-output">', unsafe_allow_html=True)
-                        st.write(security.decrypt_text(enhanced_text))
-                        st.markdown('</div>', unsafe_allow_html=True)
+                        st.markdown("<h3>Original Text</h3>", unsafe_allow_html=True)
+                        st.markdown(f"<p>{security.decrypt_text(enhanced_text)}</p>", unsafe_allow_html=True)
                         
-                        if st.button("🔊 Play Original", key="play_original",
-                                   help="Listen to the original text"):
-                            with st.spinner("Generating audio..."):
-                                audio_file = secure_text_to_speech(enhanced_text, languages[source_lang])
-                                if audio_file:
-                                    st.audio(audio_file)
-                                    os.remove(audio_file)
+                        if st.button("🔊 Play Original"):
+                            audio_file = secure_text_to_speech(enhanced_text, languages[source_lang])
+                            if audio_file:
+                                st.audio(audio_file)
+                                os.remove(audio_file)
                     
                     with col2:
-                        st.markdown("### Translation")
-                        st.markdown('<div class="text-output">', unsafe_allow_html=True)
-                        st.write(security.decrypt_text(translation))
-                        st.markdown('</div>', unsafe_allow_html=True)
+                        st.markdown("<h3>Translation</h3>", unsafe_allow_html=True)
+                        st.markdown(f"<p>{security.decrypt_text(translation)}</p>", unsafe_allow_html=True)
                         
-                        if st.button("🔊 Play Translation", key="play_translation",
-                                   help="Listen to the translated text"):
-                            with st.spinner("Generating audio..."):
-                                audio_file = secure_text_to_speech(translation, languages[target_lang])
-                                if audio_file:
-                                    st.audio(audio_file)
-                                    os.remove(audio_file)
-                    
-                    st.markdown('</div>', unsafe_allow_html=True)
-
-    # Footer
-    st.markdown("""
-        <div style="text-align: center; margin-top: 2rem; padding: 1rem; color: #6c757d;">
-            <p>Developed by Yashwanth M S | Powered by Advanced AI</p>
-            <p style="font-size: 0.8rem;">For medical translation purposes only</p>
-        </div>
-    """, unsafe_allow_html=True)
+                        if st.button("🔊 Play Translation"):
+                            audio_file = secure_text_to_speech(translation, languages[target_lang])
+                            if audio_file:
+                                st.audio(audio_file)
+                                os.remove(audio_file)
 
 if __name__ == "__main__":
     main()
+
