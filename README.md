@@ -1,10 +1,10 @@
-# Healthcare Translation Web App with Generative AI
+# Translito ! Translation Web App with Generative AI
 
 Try out here : https://nao-medical-healthcare-translation.streamlit.app/
 
 ## Overview
 
-The Healthcare Translation Web App is designed to bridge language barriers in healthcare settings by utilizing generative AI technologies. This web app offers features such as real-time voice recording, transcription, translation, medical term enhancement, and text-to-speech capabilities. The app integrates state-of-the-art AI models, including **Groq**, **OpenAI**, and **DeepGram**, to ensure accurate and secure healthcare translations.
+The Translation Web App is designed to bridge language barriers in healthcare settings by utilizing generative AI technologies. This web app offers features such as real-time voice recording, transcription, translation, medical term enhancement, and text-to-speech capabilities. The app integrates state-of-the-art AI models, including **Groq**, **gTTS**, and **DeepGram**, to ensure accurate and secure healthcare translations.
 
 ## Features
 
@@ -28,7 +28,6 @@ The Healthcare Translation Web App is designed to bridge language barriers in he
   - **GoogleTranslator** for text translation
   - **gTTS (Google Text-to-Speech)** for TTS conversion
   - **Cryptography (Fernet)** for data encryption
-  - **SQLAlchemy** for secure database interactions (if applicable)
 
 - **Security**: 
   - End-to-end encryption of sensitive data (audio, text) via **Fernet**
@@ -68,11 +67,11 @@ Here is the entire content in Markdown (MD) format for your README:
 
 markdown
 Copy code
-# Healthcare Translation Web App with Generative AI
+# Translation Web App with Generative AI
 
 ## Overview
 
-The Healthcare Translation Web App is designed to bridge language barriers in healthcare settings by utilizing generative AI technologies. This web app offers features such as real-time voice recording, transcription, translation, medical term enhancement, and text-to-speech capabilities. The app integrates state-of-the-art AI models, including **Groq**, **OpenAI**, and **DeepGram**, to ensure accurate and secure healthcare translations.
+The Translation Web App is designed to bridge language barriers in settings by utilizing generative AI technologies. This web app offers features such as real-time voice recording, transcription, translation, medical term enhancement, and text-to-speech capabilities. The app integrates state-of-the-art AI models, including **Groq**, **OpenAI**, and **DeepGram**, to ensure accurate and secure healthcare translations.
 
 ## Features
 
@@ -96,7 +95,6 @@ The Healthcare Translation Web App is designed to bridge language barriers in he
   - **GoogleTranslator** for text translation
   - **gTTS (Google Text-to-Speech)** for TTS conversion
   - **Cryptography (Fernet)** for data encryption
-  - **SQLAlchemy** for secure database interactions (if applicable)
 
 - **Security**: 
   - End-to-end encryption of sensitive data (audio, text) via **Fernet**
