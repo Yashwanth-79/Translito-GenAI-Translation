@@ -118,7 +118,7 @@ def secure_enhance_medical_terms(encrypted_text):
             model="llama3-groq-70b-8192-tool-use-preview",
             messages=[{
                 "role": "system",
-                "content": "You are a medical transcription expert. Correct and enhance any medical terminology in the following text while preserving the original meaning. Don't be General, just translate what input you receive."
+                "content": "You are a translation. Correct and enhance any terminology in the following text while preserving the original meaning. Don't be General, just translate what input you receive."
             }, {
                 "role": "user",
                 "content": decrypted_text
@@ -197,7 +197,7 @@ def main():
     )
     
     # Sidebar with instructions and guidance
-    st.sidebar.markdown("## How to Use NaoMedical")
+    st.sidebar.markdown("## How to Use This App")
     st.sidebar.markdown(
         """
         1. **Select Languages:** Choose the source language (your spoken language) and the target language (desired translation).
@@ -206,11 +206,11 @@ def main():
         4. **Reset if Needed:** If you want to start over, click the **Reset** button.
         """
     )
-    st.sidebar.info("This application securely processes audio, transcribes medical content, and translates it while enhancing medical terminologies. Enjoy a seamless and secure experience!")
+    st.sidebar.info("This application securely processes audio, transcribes medical content, and translates it while enhancing terminologies. Enjoy a seamless and secure experience!")
 
     # Main page header
-    st.markdown('<div class="main-title">NaoMedical</div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-title">Healthcare Translation Web App with Generative AI</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-title"><i>Translito !</i></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Real-Time Generative AI powered Translation Web App</div>', unsafe_allow_html=True)
     st.markdown("<p style='text-align: center;'>By Yashwanth M S</p>", unsafe_allow_html=True)
 
     # Define language options
