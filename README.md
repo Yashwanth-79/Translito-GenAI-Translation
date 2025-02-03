@@ -1,6 +1,6 @@
 # Translito ! Translation Web App with Generative AI
 
-Try out here : https://nao-medical-healthcare-translation.streamlit.app/
+Try out here : https://translito-genai-translation.streamlit.app/
 
 ## Overview
 
