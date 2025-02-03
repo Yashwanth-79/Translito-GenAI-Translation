@@ -206,7 +206,7 @@ def main():
         4. **Reset if Needed:** If you want to start over, click the **Reset** button.
         """
     )
-    st.sidebar.info("This application securely processes audio, transcribes medical content, and translates it while enhancing terminologies. Enjoy a seamless and secure experience!")
+    st.sidebar.info("This application securely processes audio, transcribes the content, and translates it while enhancing terminologies. Enjoy a seamless and secure experience!")
 
     # Main page header
     st.markdown('<div class="main-title"><i>Translito !</i></div>', unsafe_allow_html=True)
