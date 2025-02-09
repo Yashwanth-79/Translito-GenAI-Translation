@@ -153,10 +153,67 @@ def secure_text_to_speech(encrypted_text, lang_code):
 def main():
    
 
-    st.markdown("""<style> .stAudio { width: 100%; } </style>""", unsafe_allow_html=True)
-    st.markdown(" ## Translito ! ")
-    st.markdown(" #### Real time Translation Gen-AI app ")
-    st.text("By Yashwanth M S")
+    st.set_page_config(page_title="Translito", layout="wide")
+
+    # Add custom CSS styles
+    st.markdown(
+        """
+        <style>
+            /* Main title style */
+            .main-title {
+                font-size: 2.5em;
+                font-weight: bold;
+                text-align: center;
+                color: #2C3E50;
+            }
+            /* Subtitle style */
+            .sub-title {
+                font-size: 1.2em;
+                text-align: center;
+                color: #34495E;
+            }
+            /* Recording status style */
+            .recording-status {
+                background-color: #e74c3c;
+                color: white;
+                padding: 10px;
+                text-align: center;
+                border-radius: 5px;
+                margin-bottom: 10px;
+            }
+            /* Sidebar instructions */
+            .sidebar-instructions {
+                font-size: 1em;
+                line-height: 1.5;
+            }
+            /* Audio section styling */
+            .audio-section {
+                margin-top: 20px;
+            }
+            /* Button styles override */
+            .stButton>button {
+                font-weight: bold;
+            }
+        </style>
+        """, unsafe_allow_html=True
+    )
+
+    # Sidebar with instructions and guidance
+    st.sidebar.markdown("## How to Use This App")
+    st.sidebar.markdown(
+        """
+        1. **Select Languages:** Choose the source language (your spoken language) and the target language (desired translation).
+        2. **Record Your Voice:** Click on **Start Recording** and speak clearly. When done, click **Stop**.
+        3. **Review & Play:** Once processed, view the transcription and translation. Use the play buttons to listen to both the original and the translated audio.
+        4. **Reset if Needed:** If you want to start over, click the **Reset** button.
+        """
+    )
+    st.sidebar.info("This application securely processes audio, transcribes the content, and translates it while enhancing terminologies. Enjoy a seamless and secure experience!")
+
+    # Main page header
+    st.markdown('<div class="main-title"><i>Translito !</i></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Real-Time Generative AI powered Translation Web App</div>', unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>By Yashwanth M S</p>", unsafe_allow_html=True)
 
     languages = {
     'English': 'en', 'Spanish': 'es', 'French': 'fr',
