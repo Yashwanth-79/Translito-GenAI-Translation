@@ -151,7 +151,7 @@ def secure_text_to_speech(encrypted_text, lang_code):
         return None
 
 def main():
-    st.set_page_config(page_title="NaoMedical", layout="wide")
+   
 
     st.markdown("""<style> .stAudio { width: 100%; } </style>""", unsafe_allow_html=True)
     st.markdown(" ## Translito ! ")
