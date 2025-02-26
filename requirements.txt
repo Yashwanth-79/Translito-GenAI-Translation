@@ -24,3 +24,4 @@ toml
 psycopg2-binary
 Pillow
 python-dateutil
+langdetect
