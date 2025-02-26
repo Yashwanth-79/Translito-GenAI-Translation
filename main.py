@@ -334,7 +334,7 @@ def main():
 
     col1, col2 = st.columns(2)
     with col1:
-        source_lang = st.selectbox("Source Language (you must speak in this language)", list(languages.keys()), index=0)
+        source_lang = st.selectbox("Source Language ", list(languages.keys()), index=0)
     with col2:
         target_lang = st.selectbox("Target Language", list(languages.keys()), index=1)
 
