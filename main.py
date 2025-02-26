@@ -12,6 +12,7 @@ import logging
 from cryptography.fernet import Fernet
 import secrets
 from langdetect import detect, LangDetectException
+import datetime
 
 # Configure basic logging
 logging.basicConfig(
@@ -60,6 +61,9 @@ if 'language_error' not in st.session_state:
     st.session_state.language_error = False
 if 'error_message' not in st.session_state:
     st.session_state.error_message = ""
+# Initialize conversation history
+if 'conversation_history' not in st.session_state:
+    st.session_state.conversation_history = []
 
 # Language code mapping (reverse mapping from language code to language name)
 def get_lang_code_mapping():
@@ -258,6 +262,80 @@ languages = {
     'Xhosa': 'xh', 'Yiddish': 'yi', 'Yoruba': 'yo', 'Zulu': 'zu'
 }
 
+def save_to_history(source_lang, target_lang, original_text, translated_text):
+    """Save the current translation to history"""
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    history_entry = {
+        "timestamp": timestamp,
+        "source_language": source_lang,
+        "target_language": target_lang,
+        "original_text": original_text,
+        "translated_text": translated_text
+    }
+    st.session_state.conversation_history.append(history_entry)
+    
+    # Keep only the last 50 entries to prevent memory issues
+    if len(st.session_state.conversation_history) > 50:
+        st.session_state.conversation_history = st.session_state.conversation_history[-50:]
+
+def display_conversation_history():
+    """Display the conversation history"""
+    if not st.session_state.conversation_history:
+        st.info("No conversation history yet. Start translating to build your history!")
+        return
+    
+    st.subheader("Conversation History")
+    
+    # Add download button for history
+    if st.download_button(
+        label="Download History as CSV",
+        data=generate_history_csv(),
+        file_name="translito_history.csv",
+        mime="text/csv"
+    ):
+        st.success("History downloaded successfully!")
+    
+    # Add clear history button
+    if st.button("Clear History"):
+        st.session_state.conversation_history = []
+        st.success("History cleared successfully!")
+        st.rerun()
+    
+    # Display history in an expandable format
+    for i, entry in enumerate(reversed(st.session_state.conversation_history)):
+        with st.expander(f"#{len(st.session_state.conversation_history)-i}: {entry['timestamp']} - {entry['source_language']} to {entry['target_language']}"):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown(f"**Original ({entry['source_language']}):**")
+                st.markdown(f"<div style='background-color:#f0f0f0; padding:10px; border-radius:5px;'>{entry['original_text']}</div>", unsafe_allow_html=True)
+            
+            with col2:
+                st.markdown(f"**Translation ({entry['target_language']}):**")
+                st.markdown(f"<div style='background-color:#f0f0f0; padding:10px; border-radius:5px;'>{entry['translated_text']}</div>", unsafe_allow_html=True)
+
+def generate_history_csv():
+    """Generate CSV data from conversation history"""
+    import csv
+    import io
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow(['Timestamp', 'Source Language', 'Target Language', 'Original Text', 'Translated Text'])
+    
+    # Write data
+    for entry in st.session_state.conversation_history:
+        writer.writerow([
+            entry['timestamp'],
+            entry['source_language'],
+            entry['target_language'],
+            entry['original_text'],
+            entry['translated_text']
+        ])
+    
+    return output.getvalue()
+
 def main():
     st.set_page_config(page_title="Translito", layout="wide")
 
@@ -309,6 +387,30 @@ def main():
             .stButton>button {
                 font-weight: bold;
             }
+            /* History entry */
+            .history-entry {
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                padding: 10px;
+                margin-bottom: 10px;
+            }
+            /* Tabs styling */
+            .stTabs [data-baseweb="tab-list"] {
+                gap: 24px;
+            }
+            .stTabs [data-baseweb="tab"] {
+                height: 50px;
+                white-space: pre-wrap;
+                background-color: white;
+                border-radius: 4px 4px 0px 0px;
+                gap: 1px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
+            .stTabs [aria-selected="true"] {
+                background-color: #f0f2f6;
+                border-bottom: 2px solid #4e89e8;
+            }
         </style>
         """, unsafe_allow_html=True
     )
@@ -320,7 +422,8 @@ def main():
         1. **Select Languages:** Choose the source language (your spoken language) and the target language (desired translation).
         2. **Record Your Voice:** Click on **Start Recording** and speak clearly in the selected source language. When done, click **Stop**.
         3. **Review & Play:** Once processed, view the transcription and translation. Use the play buttons to listen to both the original and the translated audio.
-        4. **Reset if Needed:** If you want to start over, click the **Reset** button.
+        4. **History:** View your conversation history in the History tab. You can download it as a CSV file.
+        5. **Reset if Needed:** If you want to start over, click the **Reset** button.
         
         **Important Note:** You must speak in the language you selected as the source language. The app will verify this and alert you if there's a mismatch.
         """
@@ -332,93 +435,108 @@ def main():
     st.markdown('<div class="sub-title">Real-Time Generative AI powered Translation Web App</div>', unsafe_allow_html=True)
     st.markdown("<p style='text-align: center;'>By Yashwanth M S</p>", unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        source_lang = st.selectbox("Source Language ", list(languages.keys()), index=0)
-    with col2:
-        target_lang = st.selectbox("Target Language", list(languages.keys()), index=1)
+    # Create tabs for Translation and History
+    tab1, tab2 = st.tabs(["Translation", "History"])
+    
+    with tab1:
+        col1, col2 = st.columns(2)
+        with col1:
+            source_lang = st.selectbox("Source Language ", list(languages.keys()), index=0)
+        with col2:
+            target_lang = st.selectbox("Target Language", list(languages.keys()), index=1)
 
-    # Display language guidance
-    st.info(f"Please make sure to speak in {source_lang} for accurate transcription and translation.")
+        # Display language guidance
+        st.info(f"Please make sure to speak in {source_lang} for accurate transcription and translation.")
 
-    st.subheader("Voice Recording")
+        st.subheader("Voice Recording")
 
-    col1, col2, col3 = st.columns(3)
+        col1, col2, col3 = st.columns(3)
 
-    with col1:
-        if st.button("🎙️ Start Recording", 
-                    type="primary" if st.session_state.recording_state != 'recording' else "secondary",
-                    disabled=st.session_state.recording_state == 'recording'):
-            st.session_state.recording_state = 'recording'
-            st.session_state.audio_bytes = None
-            st.session_state.language_error = False
-            st.session_state.error_message = ""
-            st.rerun()
+        with col1:
+            if st.button("🎙️ Start Recording", 
+                        type="primary" if st.session_state.recording_state != 'recording' else "secondary",
+                        disabled=st.session_state.recording_state == 'recording'):
+                st.session_state.recording_state = 'recording'
+                st.session_state.audio_bytes = None
+                st.session_state.language_error = False
+                st.session_state.error_message = ""
+                st.rerun()
 
-    with col2:
-        if st.button("⏹️ Stop", 
-                    type="primary" if st.session_state.recording_state == 'recording' else "secondary",
-                    disabled=st.session_state.recording_state != 'recording'):
-            st.session_state.recording_state = 'stopped'
-            st.rerun()
+        with col2:
+            if st.button("⏹️ Stop", 
+                        type="primary" if st.session_state.recording_state == 'recording' else "secondary",
+                        disabled=st.session_state.recording_state != 'recording'):
+                st.session_state.recording_state = 'stopped'
+                st.rerun()
 
-    with col3:
-        if st.button("🔄 Reset",
-                    disabled=st.session_state.recording_state == 'recording'):
-            st.session_state.recording_state = 'stopped'
-            st.session_state.audio_bytes = None
-            st.session_state.language_error = False
-            st.session_state.error_message = ""
-            st.rerun()
+        with col3:
+            if st.button("🔄 Reset",
+                        disabled=st.session_state.recording_state == 'recording'):
+                st.session_state.recording_state = 'stopped'
+                st.session_state.audio_bytes = None
+                st.session_state.language_error = False
+                st.session_state.error_message = ""
+                st.rerun()
 
-    if st.session_state.recording_state == 'recording':
-        st.markdown("""<div class="recording-status" style="background-color: #ff4b4b; color: white;"> Recording in progress... 🎙️ </div>""", unsafe_allow_html=True)
+        if st.session_state.recording_state == 'recording':
+            st.markdown("""<div class="recording-status" style="background-color: #ff4b4b; color: white;"> Recording in progress... 🎙️ </div>""", unsafe_allow_html=True)
 
-        audio_bytes = ast.audio_recorder(pause_threshold=60.0, sample_rate=44100)
+            audio_bytes = ast.audio_recorder(pause_threshold=60.0, sample_rate=44100)
 
-        if audio_bytes:
-            st.session_state.audio_bytes = audio_bytes
+            if audio_bytes:
+                st.session_state.audio_bytes = audio_bytes
 
-    # Display language error if detected
-    if st.session_state.language_error and st.session_state.error_message:
-        st.markdown(f"""<div class="error-message">{st.session_state.error_message}</div>""", unsafe_allow_html=True)
+        # Display language error if detected
+        if st.session_state.language_error and st.session_state.error_message:
+            st.markdown(f"""<div class="error-message">{st.session_state.error_message}</div>""", unsafe_allow_html=True)
 
-    if st.session_state.audio_bytes:
-        st.audio(st.session_state.audio_bytes, format="audio/wav")
+        if st.session_state.audio_bytes:
+            st.audio(st.session_state.audio_bytes, format="audio/wav")
 
-        with st.spinner("Processing audio..."):
-            audio_file = secure_save_audio(st.session_state.audio_bytes)
+            with st.spinner("Processing audio..."):
+                audio_file = secure_save_audio(st.session_state.audio_bytes)
 
-            if audio_file:
-                # Use the selected source language code for transcription
-                source_lang_code = languages[source_lang]
-                transcription = secure_transcribe_audio(audio_file, source_lang_code)
+                if audio_file:
+                    # Use the selected source language code for transcription
+                    source_lang_code = languages[source_lang]
+                    transcription = secure_transcribe_audio(audio_file, source_lang_code)
 
-                # Only proceed if there's no language mismatch error
-                if transcription and not st.session_state.language_error:
-                    enhanced_text = secure_enhance_medical_terms(transcription)
-                    translation = secure_translate_text(enhanced_text, languages[target_lang])
+                    # Only proceed if there's no language mismatch error
+                    if transcription and not st.session_state.language_error:
+                        enhanced_text = secure_enhance_medical_terms(transcription)
+                        translation = secure_translate_text(enhanced_text, languages[target_lang])
 
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.markdown(f"<h3>Original Text ({source_lang})</h3><p>{security.decrypt_text(enhanced_text)}</p>", unsafe_allow_html=True)
+                        # Get decrypted texts for display
+                        original_decrypted = security.decrypt_text(enhanced_text)
+                        translation_decrypted = security.decrypt_text(translation)
 
-                        if st.button("🔊 Play Original"):
-                            audio_file = secure_text_to_speech(enhanced_text, languages[source_lang])
-                            if audio_file:
-                                st.audio(audio_file)
-                                os.remove(audio_file)
+                        # Save to history
+                        save_to_history(source_lang, target_lang, original_decrypted, translation_decrypted)
 
-                    with col2:
-                        st.markdown(f"<h3>Translation ({target_lang})</h3><p>{security.decrypt_text(translation)}</p>", unsafe_allow_html=True)
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown(f"<h3>Original Text ({source_lang})</h3><p>{original_decrypted}</p>", unsafe_allow_html=True)
 
-                        if st.button("🔊 Play Translation"):
-                            audio_file = secure_text_to_speech(translation, languages[target_lang])
-                            if audio_file:
-                                st.audio(audio_file)
-                                os.remove(audio_file)
-                elif not st.session_state.language_error:
-                    st.error("Failed to transcribe audio. Please try again.")
+                            if st.button("🔊 Play Original"):
+                                audio_file = secure_text_to_speech(enhanced_text, languages[source_lang])
+                                if audio_file:
+                                    st.audio(audio_file)
+                                    os.remove(audio_file)
+
+                        with col2:
+                            st.markdown(f"<h3>Translation ({target_lang})</h3><p>{translation_decrypted}</p>", unsafe_allow_html=True)
+
+                            if st.button("🔊 Play Translation"):
+                                audio_file = secure_text_to_speech(translation, languages[target_lang])
+                                if audio_file:
+                                    st.audio(audio_file)
+                                    os.remove(audio_file)
+                    elif not st.session_state.language_error:
+                        st.error("Failed to transcribe audio. Please try again.")
+    
+    with tab2:
+        # Display conversation history
+        display_conversation_history()
 
 if __name__ == "__main__":
     main()
