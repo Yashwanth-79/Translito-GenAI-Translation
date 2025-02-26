@@ -5,9 +5,13 @@ import tempfile
 from gtts import gTTS
 import audio_recorder_streamlit as ast
 from deep_translator import GoogleTranslator
+import time
+import numpy as np
 from dotenv import load_dotenv
 import logging
 from cryptography.fernet import Fernet
+import secrets
+from langdetect import detect, LangDetectException
 
 # Configure basic logging
 logging.basicConfig(
@@ -52,8 +56,41 @@ if 'recording_state' not in st.session_state:
     st.session_state.recording_state = 'stopped'
 if 'audio_bytes' not in st.session_state:
     st.session_state.audio_bytes = None
-if 'detected_lang' not in st.session_state:
-    st.session_state.detected_lang = None
+if 'language_error' not in st.session_state:
+    st.session_state.language_error = False
+if 'error_message' not in st.session_state:
+    st.session_state.error_message = ""
+
+# Language code mapping (reverse mapping from language code to language name)
+def get_lang_code_mapping():
+    # Create reverse mapping
+    reverse_lang_map = {}
+    for lang, code in languages.items():
+        reverse_lang_map[code] = lang
+    return reverse_lang_map
+
+# Language detection to ISO code mapping
+lang_detect_to_iso = {
+    'en': 'en', 'es': 'es', 'fr': 'fr', 'de': 'de', 'it': 'it', 'pt': 'pt',
+    'zh-cn': 'zh-CN', 'zh-tw': 'zh-TW', 'ja': 'ja', 'ko': 'ko', 'hi': 'hi',
+    'ar': 'ar', 'ru': 'ru', 'bn': 'bn', 'id': 'id', 'tr': 'tr', 'vi': 'vi',
+    'nl': 'nl', 'el': 'el', 'he': 'he', 'sv': 'sv', 'no': 'no', 'da': 'da',
+    'pl': 'pl', 'cs': 'cs', 'hu': 'hu', 'fi': 'fi', 'th': 'th', 'fil': 'fil',
+    'ms': 'ms', 'ur': 'ur', 'ta': 'ta', 'te': 'te', 'mr': 'mr', 'pa': 'pa',
+    'gu': 'gu', 'uk': 'uk', 'ro': 'ro', 'bg': 'bg', 'sr': 'sr', 'hr': 'hr',
+    'sk': 'sk', 'sl': 'sl', 'lt': 'lt', 'lv': 'lv', 'et': 'et', 'is': 'is',
+    'af': 'af', 'sq': 'sq', 'am': 'am', 'hy': 'hy', 'az': 'az', 'eu': 'eu',
+    'be': 'be', 'bs': 'bs', 'ca': 'ca', 'ceb': 'ceb', 'co': 'co', 'eo': 'eo',
+    'fy': 'fy', 'gl': 'gl', 'ka': 'ka', 'ht': 'ht', 'ha': 'ha', 'haw': 'haw',
+    'hmn': 'hmn', 'is': 'is', 'ig': 'ig', 'ga': 'ga', 'jw': 'jw', 'kn': 'kn',
+    'kk': 'kk', 'km': 'km', 'rw': 'rw', 'ku': 'ku', 'ky': 'ky', 'lo': 'lo',
+    'la': 'la', 'lb': 'lb', 'mk': 'mk', 'mg': 'mg', 'ml': 'ml', 'mt': 'mt',
+    'mi': 'mi', 'mn': 'mn', 'my': 'my', 'ne': 'ne', 'ny': 'ny', 'or': 'or',
+    'ps': 'ps', 'fa': 'fa', 'sm': 'sm', 'gd': 'gd', 'st': 'st', 'sn': 'sn',
+    'sd': 'sd', 'si': 'si', 'so': 'so', 'su': 'su', 'sw': 'sw', 'tl': 'tl',
+    'tg': 'tg', 'tt': 'tt', 'tk': 'tk', 'ug': 'ug', 'uz': 'uz', 'cy': 'cy',
+    'xh': 'xh', 'yi': 'yi', 'yo': 'yo', 'zu': 'zu'
+}
 
 def secure_save_audio(audio_bytes):
     """Save audio with secure file handling"""
@@ -67,31 +104,50 @@ def secure_save_audio(audio_bytes):
         logging.error(f"Error saving audio: {str(e)}")
         return None
 
-def secure_transcribe_audio(audio_file, language_code):
-    """Transcribe audio with encryption and enforce language selection"""
+def secure_transcribe_audio(audio_file, expected_lang_code):
+    """Transcribe audio with encryption and language validation"""
     try:
         with open(audio_file, "rb") as file:
-            # Pass the language code to the transcription service
+            # Instruct Whisper to focus on the expected language
             transcription = client.audio.transcriptions.create(
                 file=(audio_file, file.read()),
                 model="whisper-large-v3",
                 response_format="verbose_json",
-                language=language_code  # Force the selected source language
+                language=expected_lang_code  # Tell Whisper which language to expect
             )
             
-            # Store detected language for verification
-            detected_lang = transcription.language
-            st.session_state.detected_lang = detected_lang
+            # Get the transcribed text
+            transcribed_text = transcription.text
             
-            # Check if detected language matches selected source language
-            if detected_lang and detected_lang != language_code:
-                # Log the mismatch but continue with transcription
-                logging.info(f"Language mismatch: Selected {language_code}, detected {detected_lang}")
+            # Verify the language of the transcribed text
+            try:
+                detected_lang = detect(transcribed_text)
+                
+                # Map detected language to ISO code for comparison
+                detected_iso = lang_detect_to_iso.get(detected_lang, detected_lang)
+                expected_iso = expected_lang_code
+                
+                # Normalize codes for comparison (some languages have different formats)
+                if detected_iso.lower() != expected_iso.lower() and detected_iso.split('-')[0] != expected_iso.split('-')[0]:
+                    reverse_lang_map = get_lang_code_mapping()
+                    st.session_state.language_error = True
+                    st.session_state.error_message = f"Language mismatch detected. You selected {reverse_lang_map.get(expected_iso, expected_iso)} but spoke in {reverse_lang_map.get(detected_iso, detected_iso)}."
+                    return None
+                
+                # Reset error state if no error
+                st.session_state.language_error = False
+                st.session_state.error_message = ""
+                
+            except LangDetectException:
+                # If language detection fails, proceed with caution but don't block
+                logging.warning("Language detection failed, proceeding with transcription")
             
             # Encrypt the transcribed text
-            return security.encrypt_text(transcription.text)
+            return security.encrypt_text(transcribed_text)
     except Exception as e:
         logging.error(f"Transcription error: {str(e)}")
+        st.session_state.language_error = True
+        st.session_state.error_message = f"Error during transcription: {str(e)}"
         return None
     finally:
         # Cleanup temporary file
@@ -100,16 +156,15 @@ def secure_transcribe_audio(audio_file, language_code):
         except:
             pass
 
-def secure_translate_text(encrypted_text, source_lang, target_lang):
-    """Translate text with encryption using specific source and target languages"""
+def secure_translate_text(encrypted_text, target_lang):
+    """Translate text with encryption"""
     try:
         # Decrypt for translation
         decrypted_text = security.decrypt_text(encrypted_text)
         if not decrypted_text:
             return None
 
-        # Use specific source language instead of 'auto'
-        translator = GoogleTranslator(source=source_lang, target=target_lang)
+        translator = GoogleTranslator(source='auto', target=target_lang)
         translation = translator.translate(decrypted_text)
 
         # Re-encrypt before returning
@@ -118,8 +173,8 @@ def secure_translate_text(encrypted_text, source_lang, target_lang):
         logging.error(f"Translation error: {str(e)}")
         return None
 
-def secure_enhance_medical_terms(encrypted_text, source_lang):
-    """Enhance medical terms with encryption while preserving language"""
+def secure_enhance_medical_terms(encrypted_text):
+    """Enhance medical terms with encryption"""
     try:
         # Decrypt for processing
         decrypted_text = security.decrypt_text(encrypted_text)
@@ -130,7 +185,7 @@ def secure_enhance_medical_terms(encrypted_text, source_lang):
             model="llama3-groq-70b-8192-tool-use-preview",
             messages=[{
                 "role": "system",
-                "content": f"You are a translation and transcription expert. Correct and enhance any terminology in the following text while preserving the original meaning. The text is in {source_lang}. Do not translate, only improve the transcription while keeping it in the original language."
+                "content": "You are a translation and transcription expert. Correct and enhance any terminology in the following text while preserving the original meaning. just translate what input you receive."
             }, {
                 "role": "user",
                 "content": decrypted_text
@@ -162,92 +217,8 @@ def secure_text_to_speech(encrypted_text, lang_code):
         logging.error(f"Text-to-speech error: {str(e)}")
         return None
 
-# Function to get language code from language name
-def get_language_code(language_name, languages_dict):
-    return languages_dict.get(language_name, 'en')
-
-def main():
-    st.set_page_config(page_title="Translito", layout="wide")
-
-    # Add custom CSS styles
-    st.markdown(
-        """
-        <style>
-            /* Main title style */
-            .main-title {
-                font-size: 2.5em;
-                font-weight: bold;
-                text-align: center;
-                color: #2C3E50;
-            }
-            /* Subtitle style */
-            .sub-title {
-                font-size: 1.2em;
-                text-align: center;
-                color: #34495E;
-            }
-            /* Recording status style */
-            .recording-status {
-                background-color: #e74c3c;
-                color: white;
-                padding: 10px;
-                text-align: center;
-                border-radius: 5px;
-                margin-bottom: 10px;
-            }
-            /* Warning status style */
-            .warning-status {
-                background-color: #f39c12;
-                color: white;
-                padding: 10px;
-                text-align: center;
-                border-radius: 5px;
-                margin-bottom: 10px;
-            }
-            /* Success status style */
-            .success-status {
-                background-color: #2ecc71;
-                color: white;
-                padding: 10px;
-                text-align: center;
-                border-radius: 5px;
-                margin-bottom: 10px;
-            }
-            /* Sidebar instructions */
-            .sidebar-instructions {
-                font-size: 1em;
-                line-height: 1.5;
-            }
-            /* Audio section styling */
-            .audio-section {
-                margin-top: 20px;
-            }
-            /* Button styles override */
-            .stButton>button {
-                font-weight: bold;
-            }
-        </style>
-        """, unsafe_allow_html=True
-    )
-
-    # Sidebar with instructions and guidance
-    st.sidebar.markdown("## How to Use This App")
-    st.sidebar.markdown(
-        """
-        1. **Select Languages:** Choose the source language (the language you will speak in) and the target language (desired translation).
-        2. **Record Your Voice:** Click on **Start Recording** and speak clearly in the selected source language. When done, click **Stop**.
-        3. **Review & Play:** Once processed, view the transcription and translation. Use the play buttons to listen to both the original and the translated audio.
-        4. **Reset if Needed:** If you want to start over, click the **Reset** button.
-        """
-    )
-    st.sidebar.info("This application securely processes audio, transcribes the content, and translates it while enhancing terminologies. Speak in the language you selected as the source language for best results!")
-
-    # Main page header
-    st.markdown('<div class="main-title"><i>Translito !</i></div>', unsafe_allow_html=True)
-    st.markdown('<div class="sub-title">Real-Time Generative AI powered Translation Web App</div>', unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center;'>By Yashwanth M S</p>", unsafe_allow_html=True)
-
-    languages = {
+# Global language dictionary
+languages = {
     'English': 'en', 'Spanish': 'es', 'French': 'fr',
     'German': 'de', 'Italian': 'it', 'Portuguese': 'pt',
     'Chinese (Simplified)': 'zh-CN', 'Chinese (Traditional)': 'zh-TW',
@@ -285,23 +256,90 @@ def main():
     'Tajik': 'tg', 'Tatar': 'tt', 'Turkmen': 'tk',
     'Uyghur': 'ug', 'Uzbek': 'uz', 'Welsh': 'cy',
     'Xhosa': 'xh', 'Yiddish': 'yi', 'Yoruba': 'yo', 'Zulu': 'zu'
-    }
+}
+
+def main():
+    st.set_page_config(page_title="Translito", layout="wide")
+
+    # Add custom CSS styles
+    st.markdown(
+        """
+        <style>
+            /* Main title style */
+            .main-title {
+                font-size: 2.5em;
+                font-weight: bold;
+                text-align: center;
+                color: #2C3E50;
+            }
+            /* Subtitle style */
+            .sub-title {
+                font-size: 1.2em;
+                text-align: center;
+                color: #34495E;
+            }
+            /* Recording status style */
+            .recording-status {
+                background-color: #e74c3c;
+                color: white;
+                padding: 10px;
+                text-align: center;
+                border-radius: 5px;
+                margin-bottom: 10px;
+            }
+            /* Error message style */
+            .error-message {
+                background-color: #e74c3c;
+                color: white;
+                padding: 10px;
+                text-align: center;
+                border-radius: 5px;
+                margin-bottom: 10px;
+            }
+            /* Sidebar instructions */
+            .sidebar-instructions {
+                font-size: 1em;
+                line-height: 1.5;
+            }
+            /* Audio section styling */
+            .audio-section {
+                margin-top: 20px;
+            }
+            /* Button styles override */
+            .stButton>button {
+                font-weight: bold;
+            }
+        </style>
+        """, unsafe_allow_html=True
+    )
+
+    # Sidebar with instructions and guidance
+    st.sidebar.markdown("## How to Use This App")
+    st.sidebar.markdown(
+        """
+        1. **Select Languages:** Choose the source language (your spoken language) and the target language (desired translation).
+        2. **Record Your Voice:** Click on **Start Recording** and speak clearly in the selected source language. When done, click **Stop**.
+        3. **Review & Play:** Once processed, view the transcription and translation. Use the play buttons to listen to both the original and the translated audio.
+        4. **Reset if Needed:** If you want to start over, click the **Reset** button.
+        
+        **Important Note:** You must speak in the language you selected as the source language. The app will verify this and alert you if there's a mismatch.
+        """
+    )
+    st.sidebar.info("This application securely processes audio, transcribes the content, and translates it while enhancing terminologies. Enjoy a seamless and secure experience!")
+
+    # Main page header
+    st.markdown('<div class="main-title"><i>Translito !</i></div>', unsafe_allow_html=True)
+    st.markdown('<div class="sub-title">Real-Time Generative AI powered Translation Web App</div>', unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>By Yashwanth M S</p>", unsafe_allow_html=True)
 
     col1, col2 = st.columns(2)
     with col1:
-        source_lang = st.selectbox("Source Language (The language you will speak in)", list(languages.keys()), index=0)
-        source_lang_code = languages[source_lang]
+        source_lang = st.selectbox("Source Language (you must speak in this language)", list(languages.keys()), index=0)
     with col2:
-        target_lang = st.selectbox("Target Language (The language for translation)", list(languages.keys()), index=1)
-        target_lang_code = languages[target_lang]
+        target_lang = st.selectbox("Target Language", list(languages.keys()), index=1)
 
-    # Display selected languages more prominently
-    st.markdown(f"""
-    <div style="text-align: center; padding: 10px; background-color: #f8f9fa; border-radius: 5px; margin: 10px 0;">
-        <span style="font-weight: bold;">You will speak in:</span> {source_lang} | 
-        <span style="font-weight: bold;">Translate to:</span> {target_lang}
-    </div>
-    """, unsafe_allow_html=True)
+    # Display language guidance
+    st.info(f"Please make sure to speak in {source_lang} for accurate transcription and translation.")
 
     st.subheader("Voice Recording")
 
@@ -313,7 +351,8 @@ def main():
                     disabled=st.session_state.recording_state == 'recording'):
             st.session_state.recording_state = 'recording'
             st.session_state.audio_bytes = None
-            st.session_state.detected_lang = None
+            st.session_state.language_error = False
+            st.session_state.error_message = ""
             st.rerun()
 
     with col2:
@@ -328,19 +367,21 @@ def main():
                     disabled=st.session_state.recording_state == 'recording'):
             st.session_state.recording_state = 'stopped'
             st.session_state.audio_bytes = None
-            st.session_state.detected_lang = None
+            st.session_state.language_error = False
+            st.session_state.error_message = ""
             st.rerun()
 
     if st.session_state.recording_state == 'recording':
-        st.markdown(f"""<div class="recording-status"> 
-            Recording in progress... 🎙️<br>
-            <small>Please speak in {source_lang}</small>
-        </div>""", unsafe_allow_html=True)
+        st.markdown("""<div class="recording-status" style="background-color: #ff4b4b; color: white;"> Recording in progress... 🎙️ </div>""", unsafe_allow_html=True)
 
         audio_bytes = ast.audio_recorder(pause_threshold=60.0, sample_rate=44100)
 
         if audio_bytes:
             st.session_state.audio_bytes = audio_bytes
+
+    # Display language error if detected
+    if st.session_state.language_error and st.session_state.error_message:
+        st.markdown(f"""<div class="error-message">{st.session_state.error_message}</div>""", unsafe_allow_html=True)
 
     if st.session_state.audio_bytes:
         st.audio(st.session_state.audio_bytes, format="audio/wav")
@@ -350,59 +391,34 @@ def main():
 
             if audio_file:
                 # Use the selected source language code for transcription
+                source_lang_code = languages[source_lang]
                 transcription = secure_transcribe_audio(audio_file, source_lang_code)
 
-                if transcription:
-                    # Pass source language code to enhance medical terms
-                    enhanced_text = secure_enhance_medical_terms(transcription, source_lang_code)
-                    
-                    # Use specific source and target language codes for translation
-                    translation = secure_translate_text(enhanced_text, source_lang_code, target_lang_code)
-
-                    # Display language verification message if appropriate
-                    if st.session_state.detected_lang and st.session_state.detected_lang != source_lang_code:
-                        detected_lang_name = next((name for name, code in languages.items() 
-                                              if code == st.session_state.detected_lang), st.session_state.detected_lang)
-                        st.markdown(f"""
-                        <div class="warning-status">
-                            ⚠️ The app detected that you might be speaking in {detected_lang_name} 
-                            instead of the selected {source_lang}. For best results, please select 
-                            the correct source language or speak in {source_lang}.
-                        </div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"""
-                        <div class="success-status">
-                            ✅ Successfully detected and processed {source_lang} speech
-                        </div>
-                        """, unsafe_allow_html=True)
+                # Only proceed if there's no language mismatch error
+                if transcription and not st.session_state.language_error:
+                    enhanced_text = secure_enhance_medical_terms(transcription)
+                    translation = secure_translate_text(enhanced_text, languages[target_lang])
 
                     col1, col2 = st.columns(2)
                     with col1:
                         st.markdown(f"<h3>Original Text ({source_lang})</h3><p>{security.decrypt_text(enhanced_text)}</p>", unsafe_allow_html=True)
 
                         if st.button("🔊 Play Original"):
-                            audio_file = secure_text_to_speech(enhanced_text, source_lang_code)
+                            audio_file = secure_text_to_speech(enhanced_text, languages[source_lang])
                             if audio_file:
                                 st.audio(audio_file)
-                                # Clean up after playing
-                                try:
-                                    os.remove(audio_file)
-                                except:
-                                    pass
+                                os.remove(audio_file)
 
                     with col2:
                         st.markdown(f"<h3>Translation ({target_lang})</h3><p>{security.decrypt_text(translation)}</p>", unsafe_allow_html=True)
 
                         if st.button("🔊 Play Translation"):
-                            audio_file = secure_text_to_speech(translation, target_lang_code)
+                            audio_file = secure_text_to_speech(translation, languages[target_lang])
                             if audio_file:
                                 st.audio(audio_file)
-                                # Clean up after playing
-                                try:
-                                    os.remove(audio_file)
-                                except:
-                                    pass
+                                os.remove(audio_file)
+                elif not st.session_state.language_error:
+                    st.error("Failed to transcribe audio. Please try again.")
 
 if __name__ == "__main__":
     main()
